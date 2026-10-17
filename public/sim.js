@@ -6,14 +6,16 @@
   'use strict';
   // Arena is a circle of radius R centred on (0,0). Launchers sit on the rim, one per seat.
   const R = 500, PAD = 32, LAUNCH_R = R - 62;
-  const COOLDOWN = 1, RAPID_CD = 0.12, SWEEP = 1.15, SWEEP_RATE = 1.9;
+  const COOLDOWN = 0.6, RAPID_CD = 0.1, SWEEP = 1.15, SWEEP_RATE = 1.9;
   const MULTI_TIME = 5, RAPID_TIME = 4, SPREAD = 0.17;
-  const ARROW_V = 1000, REEL_V = 1250, HIT_R = 46, PU_HIT = 58, MAX_PLAYERS = 6;
+  const ARROW_V = 1300, REEL_V = 1700, HIT_R = 46, FACE_HIT = 56, PU_HIT = 58, MAX_PLAYERS = 6;
+  const FACE_COUNT = 11, FACE = 4; // tier index used for the friends' faces
   const TIERS = [
-    { val: 1, speed: 1, odds: .58 },
-    { val: 2, speed: 1.15, odds: .26 },
-    { val: 3, speed: 1.32, odds: .12 },
-    { val: 5, speed: 1.55, odds: .04 },
+    { val: 1, speed: 1, odds: .5 },
+    { val: 2, speed: 1.15, odds: .28 },
+    { val: 3, speed: 1.32, odds: .15 },
+    { val: 5, speed: 1.55, odds: .07 },
+    { val: -3, speed: 1.1, odds: 0 },   // face: minus 3, never rolled, spawned separately
   ];
   const COLORS = ['#e2483d', '#3d8be2', '#e8b23a', '#a35ee0', '#45c46a', '#2fc7c9'];
   const rnd = Math.random;
@@ -32,11 +34,12 @@
         arrows: [], sweepT: i * 1.7, cpuWait: rnd(), hits: 0, shots: 0, multiT: 0, rapidT: 0,
       })),
       dds: [], pus: [], spawned: 0, collected: 0,
-      total: 14 + 6 * n,      // 2 players: 26 DD's, 6 players: 50
-      maxOn: 6 + 2 * n,       // 2 players: 10 flying at once, 6 players: 18
+      total: 30 + 10 * n,     // 2 players: 50 DD's, 6 players: 90
+      maxOn: 10 + 3 * n,      // 2 players: 16 flying at once, 6 players: 28
+      faceMax: 2 + Math.ceil(n / 2), faceT: 2, // faces worth -3 always drifting around
       spawnT: 0, puT: 5 + rnd() * 3, over: false, events: [], nid: 1,
     };
-    for (let i = 0; i < 6; i++) spawnDD(s);
+    for (let i = 0; i < 10; i++) spawnDD(s);
     return s;
   }
   function spawnDD(s) {
@@ -45,6 +48,11 @@
     const tier = rollTier(), a = rnd() * Math.PI * 2, sp = (200 + rnd() * 130) * TIERS[tier].speed;
     s.dds.push({ id: s.nid++, x: Math.cos(a) * 20, y: Math.sin(a) * 20, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, heading: a, tier, caught: null });
     s.events.push({ e: 'spawn', tier });
+  }
+  function spawnFace(s) {
+    const a = rnd() * Math.PI * 2, sp = 210 * TIERS[FACE].speed;
+    s.dds.push({ id: s.nid++, x: Math.cos(a) * 20, y: Math.sin(a) * 20, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, heading: a, tier: FACE, face: Math.floor(rnd() * FACE_COUNT), caught: null });
+    s.events.push({ e: 'face' });
   }
   function spawnPU(s) {
     const a = rnd() * Math.PI * 2;
@@ -85,7 +93,7 @@
     if (p.rapidT > 0 && rnd() < dt * 6) { fire(s, p.id); return; }
     p.cpuWait -= dt; if (p.cpuWait > 0) return;
     const L = launcherPos(p.seat, s.n), a = aimAngle(p, s.n), ux = Math.cos(a), uy = Math.sin(a), rr = HIT_R * .8;
-    const targets = s.dds.filter(d => d.caught === null).concat(s.pus.filter(u => u.caught === null));
+    const targets = s.dds.filter(d => d.caught === null && d.tier !== FACE).concat(s.pus.filter(u => u.caught === null));
     for (const d of targets) {
       for (let t = .05; t < 1.2; t += .05) {
         const ax = L.x + ux * ARROW_V * t, ay = L.y + uy * ARROW_V * t;
@@ -103,7 +111,9 @@
     if (s.over) return;
     s.t += dt;
     s.spawnT -= dt;
-    if (s.spawnT <= 0 && s.dds.filter(d => d.caught === null).length < s.maxOn && s.spawned < s.total) { spawnDD(s); s.spawnT = .45 + rnd() * .45; }
+    if (s.spawnT <= 0 && s.dds.filter(d => d.caught === null && d.tier !== FACE).length < s.maxOn && s.spawned < s.total) { spawnDD(s); s.spawnT = .3 + rnd() * .35; }
+    s.faceT -= dt;
+    if (s.faceT <= 0) { if (s.dds.filter(d => d.caught === null && d.tier === FACE).length < s.faceMax) spawnFace(s); s.faceT = 1.5 + rnd() * 2; }
     s.puT -= dt;
     if (s.puT <= 0) { if (s.pus.filter(u => u.caught === null).length < 2 && s.collected < s.total - 1) spawnPU(s); s.puT = Math.max(4, 9 - s.n) + rnd() * 5; }
 
@@ -130,7 +140,7 @@
           A.x += A.dx * ARROW_V * dt; A.y += A.dy * ARROW_V * dt;
           for (const d of s.dds) {
             if (d.caught !== null) continue;
-            if (Math.hypot(d.x - A.x, d.y - A.y) < HIT_R) { d.caught = p.id; A.dd = d; A.st = 'r'; p.hits++; s.events.push({ e: 'hit', pid: p.id, tier: d.tier }); break; }
+            if (Math.hypot(d.x - A.x, d.y - A.y) < (d.tier === FACE ? FACE_HIT : HIT_R)) { d.caught = p.id; A.dd = d; A.st = 'r'; p.hits++; s.events.push({ e: 'hit', pid: p.id, tier: d.tier }); break; }
           }
           if (A.st === 'f') for (const u of s.pus) {
             if (u.caught !== null) continue;
@@ -142,7 +152,7 @@
           if (dist <= stp) {
             A.done = true;
             if (A.dd) {
-              const v = TIERS[A.dd.tier].val; p.score += v; s.collected++;
+              const v = TIERS[A.dd.tier].val; p.score += v; if (A.dd.tier !== FACE) s.collected++;
               s.dds = s.dds.filter(d => d !== A.dd);
               s.events.push({ e: 'score', pid: p.id, val: v, tier: A.dd.tier });
             }
@@ -169,9 +179,9 @@
         sweepT: r3(p.sweepT), multiT: r1(p.multiT), rapidT: r1(p.rapidT), hits: p.hits, shots: p.shots,
         arrows: p.arrows.map(A => ({ id: A.id, x: r1(A.x), y: r1(A.y), dx: r3(A.dx), dy: r3(A.dy), st: A.st })),
       })),
-      dds: s.dds.map(d => ({ id: d.id, x: r1(d.x), y: r1(d.y), vx: r1(d.vx), vy: r1(d.vy), tier: d.tier, c: d.caught !== null })),
+      dds: s.dds.map(d => ({ id: d.id, x: r1(d.x), y: r1(d.y), vx: r1(d.vx), vy: r1(d.vy), tier: d.tier, f: d.face, c: d.caught !== null })),
       pus: s.pus.map(u => ({ id: u.id, x: r1(u.x), y: r1(u.y), type: u.type, life: r1(u.life), t: r1(u.t), c: u.caught !== null })),
     };
   }
-  return { R, LAUNCH_R, SWEEP, COOLDOWN, MAX_PLAYERS, TIERS, COLORS, seatAngle, launcherPos, aimAngle, create, step, fire, snapshot };
+  return { R, LAUNCH_R, SWEEP, FACE, FACE_COUNT, COOLDOWN, MAX_PLAYERS, TIERS, COLORS, seatAngle, launcherPos, aimAngle, create, step, fire, snapshot };
 });

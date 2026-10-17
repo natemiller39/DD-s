@@ -92,6 +92,7 @@ button:disabled{opacity:.45;cursor:default}
         <span style="--c:#7fd3ff"><i>2</i>Rare</span>
         <span style="--c:#ffd24a"><i>3</i>Epic</span>
         <span style="--c:#ff6fd8"><i>5</i>Legendary</span>
+        <span style="--c:#ff4d4d"><i>−3</i>Faces: don't shoot</span>
       </div>
       <div class="chips">
         <span style="--c:var(--pu-multi)"><i>×3</i>Triple shot, 5s</span>
@@ -172,7 +173,7 @@ const onLive=location.hostname===LIVE_HOST||location.hostname==='localhost'||loc
 const HTTP_BASE=onLive?location.origin:'https://'+LIVE_HOST;
 const WS_URL=HTTP_BASE.replace(/^http/,'ws')+'/ws';
 const PU={multi:{label:'×3',color:'#d7f75b',name:'TRIPLE SHOT'},rapid:{label:'∞',color:'#ff8a3d',name:'NO RELOAD'}};
-const TIER_FILL=['#f4f1e8','#7fd3ff','#ffd24a',null];
+const TIER_FILL=['#f4f1e8','#7fd3ff','#ffd24a',null,'#ff4d4d'];
 const SEAT_NAMES=['Red','Blue','Gold','Violet','Green','Teal'];
 const LOCAL_KEYS=['z','q','p','a','m','v'];
 const $=id=>document.getElementById(id);
@@ -184,6 +185,7 @@ let W=0,H=0,dpr=1;
 function resize(){dpr=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*dpr;cv.height=H*dpr;}
 addEventListener('resize',resize);resize();
 const logo=new Image();logo.src='logo.png';
+const faces=Array.from({length:S.FACE_COUNT},(_,i)=>{const im=new Image();im.src='faces/f'+i+'.jpg';return im;});
 
 /* ---------- audio ---------- */
 let ac=null;
@@ -334,8 +336,11 @@ function onEvent(e){
     case 'spawn':if(e.tier===3)[700,900,1200].forEach((f,i)=>setTimeout(()=>blip(f,.12,'sine',.05),i*80));break;
     case 'pu':blip(440,.1,'sine',.04);setTimeout(()=>blip(880,.12,'sine',.04),90);break;
     case 'score':
-      pops.push({pid:e.pid,txt:'+'+e.val,c:TIER_FILL[e.tier]||'#ff6fd8',t:0});
-      if(mine){blip(520,.12,'triangle',.07);setTimeout(()=>blip(780,.14,'triangle',.06),70);}
+      pops.push({pid:e.pid,txt:e.val>0?'+'+e.val:'−'+Math.abs(e.val),c:TIER_FILL[e.tier]||'#ff6fd8',t:0});
+      if(mine){
+        if(e.val<0){blip(160,.25,'sawtooth',.07);setTimeout(()=>blip(110,.3,'sawtooth',.06),120);}
+        else{blip(520,.12,'triangle',.07);setTimeout(()=>blip(780,.14,'triangle',.06),70);}
+      }
       break;
     case 'power':
       pops.push({pid:e.pid,txt:PU[e.type].name,c:PU[e.type].color,t:0,small:true});
@@ -468,8 +473,22 @@ function drawLaunchers(v){
   }
   screen();
 }
+function drawFace(d){
+  const r=56*k,q=toScreen(d.x,d.y),im=faces[d.f||0],t=performance.now()/1000+d.id;
+  ctx.save();ctx.translate(q.x,q.y);ctx.rotate(Math.sin(t*(d.c?9:2.2))*.35);
+  ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(r*.12,r*1.05,r*.8,r*.18,0,0,7);ctx.fill();
+  ctx.save();ctx.beginPath();ctx.arc(0,0,r,0,7);ctx.clip();
+  if(im.complete&&im.naturalWidth)ctx.drawImage(im,-r,-r,r*2,r*2);else{ctx.fillStyle='#55606c';ctx.fill();}
+  ctx.restore();
+  ctx.lineWidth=Math.max(2.5,r*.12);ctx.strokeStyle='#ff4d4d';ctx.beginPath();ctx.arc(0,0,r,0,7);ctx.stroke();
+  ctx.translate(r*.72,-r*.72);ctx.fillStyle='#ff4d4d';ctx.beginPath();ctx.arc(0,0,r*.38,0,7);ctx.fill();
+  ctx.lineWidth=Math.max(1.5,r*.06);ctx.strokeStyle='#14171b';ctx.stroke();
+  ctx.fillStyle='#14171b';ctx.font=`700 ${r*.42}px ${cssv('--ui')}`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('−3',0,r*.03);
+  ctx.restore();
+}
 function drawDD(d){
   screen();
+  if(d.tier===S.FACE){drawFace(d);return;}
   const tierSize=[1,.95,.9,.85][d.tier],s=55*k*tierSize,q=toScreen(d.x,d.y);
   const flap=performance.now()/1000*(d.c?24:12)+d.id*1.3,f=Math.sin(flap);
   const fill=TIER_FILL[d.tier]||`hsl(${(performance.now()/6)%360} 95% 70%)`;
