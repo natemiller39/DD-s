@@ -92,7 +92,7 @@ button:disabled{opacity:.45;cursor:default}
         <span style="--c:#7fd3ff"><i>2</i>Rare</span>
         <span style="--c:#ffd24a"><i>3</i>Epic</span>
         <span style="--c:#ff6fd8"><i>5</i>Legendary</span>
-        <span style="--c:#ff4d4d"><i>−3</i>Faces: don't shoot</span>
+        <span style="--c:#5be38a"><i>+4</i>Faces</span>
       </div>
       <div class="chips">
         <span style="--c:var(--pu-multi)"><i>×3</i>Triple shot, 5s</span>
@@ -173,7 +173,7 @@ const onLive=location.hostname===LIVE_HOST||location.hostname==='localhost'||loc
 const HTTP_BASE=onLive?location.origin:'https://'+LIVE_HOST;
 const WS_URL=HTTP_BASE.replace(/^http/,'ws')+'/ws';
 const PU={multi:{label:'×3',color:'#d7f75b',name:'TRIPLE SHOT'},rapid:{label:'∞',color:'#ff8a3d',name:'NO RELOAD'}};
-const TIER_FILL=['#f4f1e8','#7fd3ff','#ffd24a',null,'#ff4d4d'];
+const TIER_FILL=['#f4f1e8','#7fd3ff','#ffd24a',null,'#5be38a'];
 const SEAT_NAMES=['Red','Blue','Gold','Violet','Green','Teal'];
 const LOCAL_KEYS=['z','q','p','a','m','v'];
 const $=id=>document.getElementById(id);
@@ -480,10 +480,10 @@ function drawFace(d){
   ctx.save();ctx.beginPath();ctx.arc(0,0,r,0,7);ctx.clip();
   if(im.complete&&im.naturalWidth)ctx.drawImage(im,-r,-r,r*2,r*2);else{ctx.fillStyle='#55606c';ctx.fill();}
   ctx.restore();
-  ctx.lineWidth=Math.max(2.5,r*.12);ctx.strokeStyle='#ff4d4d';ctx.beginPath();ctx.arc(0,0,r,0,7);ctx.stroke();
-  ctx.translate(r*.72,-r*.72);ctx.fillStyle='#ff4d4d';ctx.beginPath();ctx.arc(0,0,r*.38,0,7);ctx.fill();
+  ctx.lineWidth=Math.max(2.5,r*.12);ctx.strokeStyle='#5be38a';ctx.beginPath();ctx.arc(0,0,r,0,7);ctx.stroke();
+  ctx.translate(r*.72,-r*.72);ctx.fillStyle='#5be38a';ctx.beginPath();ctx.arc(0,0,r*.38,0,7);ctx.fill();
   ctx.lineWidth=Math.max(1.5,r*.06);ctx.strokeStyle='#14171b';ctx.stroke();
-  ctx.fillStyle='#14171b';ctx.font=`700 ${r*.42}px ${cssv('--ui')}`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('−3',0,r*.03);
+  ctx.fillStyle='#14171b';ctx.font=`700 ${r*.42}px ${cssv('--ui')}`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('+'+S.TIERS[S.FACE].val,0,r*.03);
   ctx.restore();
 }
 function drawDD(d){

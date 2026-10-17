@@ -15,7 +15,7 @@
     { val: 2, speed: 1.15, odds: .28 },
     { val: 3, speed: 1.32, odds: .15 },
     { val: 5, speed: 1.55, odds: .07 },
-    { val: -3, speed: 1.1, odds: 0 },   // face: minus 3, never rolled, spawned separately
+    { val: 4, speed: 1.1, odds: 0 },    // face: +4 bonus, never rolled, spawned separately
   ];
   const COLORS = ['#e2483d', '#3d8be2', '#e8b23a', '#a35ee0', '#45c46a', '#2fc7c9'];
   const rnd = Math.random;
@@ -36,7 +36,7 @@
       dds: [], pus: [], spawned: 0, collected: 0,
       total: 30 + 10 * n,     // 2 players: 50 DD's, 6 players: 90
       maxOn: 10 + 3 * n,      // 2 players: 16 flying at once, 6 players: 28
-      faceMax: 2 + Math.ceil(n / 2), faceT: 2, // faces worth -3 always drifting around
+      faceMax: 2 + Math.ceil(n / 2), faceT: 2, // bonus faces worth +4 always drifting around
       spawnT: 0, puT: 5 + rnd() * 3, over: false, events: [], nid: 1,
     };
     for (let i = 0; i < 10; i++) spawnDD(s);
@@ -93,7 +93,7 @@
     if (p.rapidT > 0 && rnd() < dt * 6) { fire(s, p.id); return; }
     p.cpuWait -= dt; if (p.cpuWait > 0) return;
     const L = launcherPos(p.seat, s.n), a = aimAngle(p, s.n), ux = Math.cos(a), uy = Math.sin(a), rr = HIT_R * .8;
-    const targets = s.dds.filter(d => d.caught === null && d.tier !== FACE).concat(s.pus.filter(u => u.caught === null));
+    const targets = s.dds.filter(d => d.caught === null).concat(s.pus.filter(u => u.caught === null));
     for (const d of targets) {
       for (let t = .05; t < 1.2; t += .05) {
         const ax = L.x + ux * ARROW_V * t, ay = L.y + uy * ARROW_V * t;
