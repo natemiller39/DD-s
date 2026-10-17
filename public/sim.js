@@ -6,7 +6,7 @@
   'use strict';
   // Arena is a circle of radius R centred on (0,0). Launchers sit on the rim, one per seat.
   const R = 500, PAD = 32, LAUNCH_R = R - 62;
-  const COOLDOWN = 1.5, RAPID_CD = 0.12, SWEEP = 1.15, SWEEP_RATE = 1.9;
+  const COOLDOWN = 1, RAPID_CD = 0.12, SWEEP = 1.15, SWEEP_RATE = 1.9;
   const MULTI_TIME = 5, RAPID_TIME = 4, SPREAD = 0.17;
   const ARROW_V = 1000, REEL_V = 1250, HIT_R = 46, PU_HIT = 58, MAX_PLAYERS = 6;
   const TIERS = [
