@@ -1,0 +1,13 @@
+{
+  "name": "austins-fantasy-dds",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Austin's Fantasy DD's: online wing-nut harpoon game for up to 6 players",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
